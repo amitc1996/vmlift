@@ -1,0 +1,31 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, ClipboardCheck, Cpu, HardDrive, MemoryStick, Network, Server } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { virtualMachines } from "@/lib/mock-data";
+
+export default async function VmDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const vm = virtualMachines.find(item => item.id === id);
+  if (!vm) notFound();
+  return <div className="space-y-5"><Link href="/inventory" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink"><ArrowLeft size={15} />Back to inventory</Link><PageHeader title={vm.name} description={`${vm.guestOs} · ${vm.id}`} actions={<><StatusBadge status={vm.powerState === "Powered on" ? "healthy" : "inactive"} label={vm.powerState} /><button disabled title="Assessment workflow is planned for Phase 2" className="button-primary"><ClipboardCheck size={16} />Run assessment</button></>} />
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[
+      { label: "Compute", value: `${vm.vcpu} vCPU`, sub: `${vm.host}`, icon: Cpu },
+      { label: "Memory", value: `${vm.memoryGb} GB`, sub: "Provisioned memory", icon: MemoryStick },
+      { label: "Storage", value: `${vm.storageGb.toLocaleString()} GB`, sub: vm.datastore, icon: HardDrive },
+      { label: "Network", value: vm.ipAddress, sub: vm.network, icon: Network },
+    ].map(item => <div className="panel rounded-md p-4" key={item.label}><div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted"><item.icon size={15} />{item.label}</div><p className="mt-2 font-medium">{item.value}</p><p className="mt-1 truncate font-mono text-xs text-muted">{item.sub}</p></div>)}</div>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.7fr)]"><div className="space-y-5">
+      <section className="panel rounded-md"><SectionTitle title="Summary" description="Discovered VMware configuration" /><dl className="grid gap-x-8 gap-y-0 p-5 sm:grid-cols-2">{[["VM identifier", vm.id], ["Guest operating system", vm.guestOs], ["Power state", vm.powerState], ["Cluster", vm.cluster], ["ESXi host", vm.host], ["Primary IP address", vm.ipAddress], ["VMware Tools", "Running · 12.4.0"], ["Hardware version", "vmx-19"]].map(([term, value]) => <div className="border-b border-line py-3" key={term}><dt className="text-xs text-muted">{term}</dt><dd className={`mt-1 text-sm ${term.includes("identifier") || term.includes("host") || term.includes("IP") ? "font-mono text-xs" : ""}`}>{value}</dd></div>)}</dl></section>
+      <section className="panel rounded-md"><SectionTitle title="Storage" description="Virtual disks and backing datastores" /><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-muted dark:bg-slate-900"><tr>{["Disk", "Capacity", "Provisioning", "Datastore", "Controller"].map(x => <th className="px-4 py-2.5 font-medium" key={x}>{x}</th>)}</tr></thead><tbody><tr className="border-t border-line"><td className="px-4 py-3 font-medium">Hard disk 1</td><td className="px-4 py-3">{vm.storageGb >= 1000 ? "200 GB" : `${vm.storageGb} GB`}</td><td className="px-4 py-3">Thin provisioned</td><td className="px-4 py-3 font-mono text-xs">{vm.datastore}</td><td className="px-4 py-3">SCSI (0:0)</td></tr>{vm.storageGb >= 1000 && <tr className="border-t border-line"><td className="px-4 py-3 font-medium">Hard disk 2</td><td className="px-4 py-3">{(vm.storageGb - 200).toLocaleString()} GB</td><td className="px-4 py-3">Thick eager zeroed</td><td className="px-4 py-3 font-mono text-xs">{vm.datastore}</td><td className="px-4 py-3">SCSI (0:1)</td></tr>}</tbody></table></div></section>
+      <section className="panel rounded-md"><SectionTitle title="Network adapters" description="Guest network interface configuration" /><div className="p-5"><div className="grid gap-4 sm:grid-cols-3"><Detail label="Adapter" value="VMXNET 3" /><Detail label="Port group" value={vm.network} mono /><Detail label="MAC address" value="00:50:56:a8:31:2f" mono /></div></div></section>
+    </div><aside className="space-y-5"><section className="panel rounded-md"><SectionTitle title="Migration readiness" description="Latest assessment result" /><div className="p-5"><StatusBadge status={vm.assessment} /><p className="mt-3 text-sm leading-6 text-muted">{vm.assessment === "Ready" ? "No blocking compatibility findings. Review target sizing before adding this workload to a migration wave." : vm.assessment === "Review" ? "Manual review is required for attached storage and workload dependencies." : vm.assessment === "Blocked" ? "Unsupported guest operating system and disk layout must be remediated before migration." : "This virtual machine has not been assessed since the latest discovery."}</p><button className="button-secondary mt-4 w-full">View assessment details</button></div></section>
+      <section className="panel rounded-md"><SectionTitle title="Snapshots" /><div className="p-5 text-center"><HardDrive size={24} className="mx-auto text-slate-400" /><p className="mt-2 text-sm font-medium">No active snapshots</p><p className="mt-1 text-xs text-muted">Snapshot data from the latest discovery.</p></div></section>
+      <section className="panel rounded-md"><SectionTitle title="Source" /><div className="space-y-4 p-5"><div className="flex gap-3"><Server size={17} className="mt-0.5 text-muted" /><Detail label="vCenter" value="Production vCenter" /></div><Detail label="Datacenter" value="DC-East" /><Detail label="Folder" value="/Production/Application" mono /></div></section>
+    </aside></div>
+  </div>;
+}
+
+function SectionTitle({ title, description }: { title: string; description?: string }) { return <div className="border-b border-line px-5 py-4"><h2 className="text-sm font-semibold">{title}</h2>{description && <p className="mt-1 text-xs text-muted">{description}</p>}</div>; }
+function Detail({ label, value, mono }: { label: string; value: string; mono?: boolean }) { return <div><p className="text-xs text-muted">{label}</p><p className={`mt-1 text-sm ${mono ? "font-mono text-xs" : ""}`}>{value}</p></div>; }

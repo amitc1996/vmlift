@@ -1,0 +1,34 @@
+import Link from "next/link";
+import { AlertTriangle, ArrowRight, Cable, CheckCircle2, CircleX, CloudCog, Play, Plus, RefreshCw, Server } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { activity, connections } from "@/lib/mock-data";
+
+const metrics = [
+  { label: "Discovered VMs", value: "248", detail: "Last scan 18 min ago", icon: Server },
+  { label: "Migration ready", value: "193", detail: "77.8% of inventory", icon: CheckCircle2 },
+  { label: "Active migrations", value: "3", detail: "Across 2 projects", icon: Play },
+  { label: "Completed", value: "64", detail: "Past 30 days", icon: CloudCog },
+  { label: "Failed", value: "2", detail: "Requires attention", icon: CircleX, warning: true },
+];
+
+const jobs = [
+  { id: "JOB-2841", project: "Customer Portal", wave: "Wave 2", status: "Running", progress: 68, updated: "1 min ago" },
+  { id: "JOB-2839", project: "Shared Services", wave: "Wave 1", status: "Validating", progress: 91, updated: "4 min ago" },
+  { id: "JOB-2832", project: "Internal Tools", wave: "Wave 3", status: "Completed", progress: 100, updated: "Yesterday" },
+];
+
+export default function DashboardPage() {
+  return <div className="space-y-6">
+    <PageHeader title="Operations overview" description="VMware discovery, assessment, and migration activity across configured environments." actions={<><Link href="/connections/new" className="button-secondary"><Plus size={16} />Add connection</Link><button disabled title="Discovery workflow is planned for Phase 2" className="button-secondary"><RefreshCw size={16} />Run discovery</button><button disabled title="Migration projects are planned for Phase 2" className="button-primary"><CloudCog size={16} />Create project</button></>} />
+    <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/50">
+      <div className="flex gap-3"><AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" /><div><p className="text-sm font-medium text-amber-900 dark:text-amber-200">DR vCenter certificate requires attention</p><p className="mt-0.5 text-sm text-amber-700 dark:text-amber-400">Connection validation failed 2 hours ago. Update the certificate trust configuration before the next discovery.</p></div><Link href="/connections" className="ml-auto hidden shrink-0 text-sm font-medium text-amber-800 hover:underline sm:block dark:text-amber-300">Review connection</Link></div>
+    </div>
+    <section aria-labelledby="inventory-summary"><div className="mb-3 flex items-center justify-between"><h2 id="inventory-summary" className="text-sm font-semibold text-ink">Inventory and migration status</h2><span className="text-xs text-muted">Demo environment</span></div><div className="grid overflow-hidden rounded-md border border-line bg-surface sm:grid-cols-2 xl:grid-cols-5">{metrics.map((metric, index) => <div key={metric.label} className={`p-4 ${index ? "border-t border-line sm:border-l sm:border-t-0" : ""}`}><div className="flex items-center justify-between"><p className="text-xs font-medium uppercase tracking-wide text-muted">{metric.label}</p><metric.icon size={17} className={metric.warning ? "text-red-500" : "text-slate-400"} /></div><p className={`mt-2 text-2xl font-semibold tabular-nums ${metric.warning ? "text-red-600 dark:text-red-400" : "text-ink"}`}>{metric.value}</p><p className="mt-1 text-xs text-muted">{metric.detail}</p></div>)}</div></section>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(340px,0.8fr)]">
+      <section className="panel overflow-hidden rounded-md"><div className="flex items-center justify-between border-b border-line px-4 py-3"><div><h2 className="text-sm font-semibold">Recent migration jobs</h2><p className="mt-0.5 text-xs text-muted">Latest execution status across projects</p></div><button className="text-sm font-medium text-blue-600 hover:underline">View all</button></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-muted dark:bg-slate-900"><tr><th className="px-4 py-2.5 font-medium">Job</th><th className="px-4 py-2.5 font-medium">Project / wave</th><th className="px-4 py-2.5 font-medium">Status</th><th className="px-4 py-2.5 font-medium">Progress</th><th className="px-4 py-2.5 font-medium">Updated</th></tr></thead><tbody>{jobs.map(job => <tr className="border-t border-line" key={job.id}><td className="px-4 py-3 font-mono text-xs font-medium text-blue-600">{job.id}</td><td className="px-4 py-3"><div className="font-medium">{job.project}</div><div className="text-xs text-muted">{job.wave}</div></td><td className="px-4 py-3"><StatusBadge status={job.status === "Completed" ? "healthy" : "informational"} label={job.status} /></td><td className="px-4 py-3"><div className="flex items-center gap-2"><div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"><div className="h-full bg-blue-600" style={{ width: `${job.progress}%` }} /></div><span className="text-xs tabular-nums text-muted">{job.progress}%</span></div></td><td className="whitespace-nowrap px-4 py-3 text-xs text-muted">{job.updated}</td></tr>)}</tbody></table></div></section>
+      <section className="panel rounded-md"><div className="border-b border-line px-4 py-3"><h2 className="text-sm font-semibold">Recent system activity</h2><p className="mt-0.5 text-xs text-muted">Discovery and assessment events</p></div><ul className="divide-y divide-line">{activity.map(item => <li className="flex gap-3 px-4 py-3" key={item.id}><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.status === "healthy" ? "bg-emerald-500" : item.status === "warning" ? "bg-amber-500" : item.status === "critical" ? "bg-red-500" : "bg-slate-400"}`} /><div className="min-w-0"><p className="text-sm font-medium">{item.action}</p><p className="mt-0.5 truncate text-xs text-muted">{item.detail}</p><p className="mt-1 text-[11px] text-muted">{item.time}</p></div></li>)}</ul></section>
+    </div>
+    <section><h2 className="mb-3 text-sm font-semibold">Connection health</h2><div className="grid gap-3 md:grid-cols-3">{connections.map(connection => <Link href="/connections" key={connection.id} className="panel group flex items-center gap-3 rounded-md p-4 hover:border-slate-300 dark:hover:border-slate-600"><span className="grid h-9 w-9 place-items-center rounded border border-line bg-slate-50 dark:bg-slate-900"><Cable size={17} /></span><div className="min-w-0"><p className="truncate text-sm font-medium">{connection.name}</p><p className="truncate text-xs text-muted">{connection.target}</p></div><div className="ml-auto flex items-center gap-2"><StatusBadge status={connection.health} /><ArrowRight size={15} className="text-muted group-hover:text-ink" /></div></Link>)}</div></section>
+  </div>;
+}
